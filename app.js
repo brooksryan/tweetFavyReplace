@@ -14,6 +14,9 @@ var cheerio = require('cheerio');
 var Twitter = require('twitter');
 var io = require("socket.io");
 
+//Services APIs
+var twitterStreamService = require('./services/twitterStream.js')
+
 //Sentiment Analysis
 var sentiment = require('sentiment');
 
@@ -114,6 +117,9 @@ function determineIfPositive (sentimentScore, callback) {
 
 }
 
+var newStream = new twitterStreamService.createNewClient(client);
+
+newStream.startStream();
 
 // STREAM INITIALIZATION
 // 
@@ -144,70 +150,3 @@ function checkRetweetStatus (tweet){
 var countOfTweets = 0;
 
 // initializes stream
-var stream = client.stream('statuses/filter', streamParams);
-  
-stream.on('data', function(event) {
-
-    var thisTweetRetweetStatus = checkRetweetStatus(event);
-
-    var thisTweetText = event.text;
-
-    var thisTweetScore = isThisPositive(thisTweetText)
-
-    var shouldIFavoriteThis = determineIfPositive(thisTweetScore);
-          
-    var params = {
-      id: event.id_str
-    }
-
-    if (thisTweetRetweetStatus === false){
-    
-        countOfTweets += 1;
-        console.log(thisTweetText + " " + countOfTweets);
-    
-    
-        client.post('favorites/create', params, function (error, tweet, response){
-                
-            //console.log(response);
-            
-            if (error) {
-
-                console.log(error + ' I found an error')
-            }
-
-            else {                
-                        // console.log(newData);
-                        // if (newData != null) {
-                        //     var thisNewData = []
-                        //     thisNewData += newData
-                        //     console.log(thisNewData[0].message);
-                        // } else {
-                console.log("You just favorited " + thisTweetText + " with a score of " + thisTweetScore)
-            }
-        })
-    }
-
-    else {
-      console.log('I didnt favorite this tweet because it was a retweet');
-    }
-});
-
-stream.on('error', function(error) {
-    throw error;
-});
-
-
-
-// function favoriteCounterLastFifteenMinutes
-//  >> Counts the current number of favorites in the last 15 minutes
-//  >> Timer that countes to 15 minutes
-
-// function favoriteCounterStatus
-//  >> binary can favorite status to let us know if we can favorite new tweets
-//       If number of tweets in the last 15 minutes is <= 15 then = true
-//       else = false
-
-// function checkStatusOfFavoriteCounter
-
-// function favoriteTweet
-
