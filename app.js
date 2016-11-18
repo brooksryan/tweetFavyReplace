@@ -27,10 +27,10 @@ var client = new Twitter({
 });
 
 //rssService
-var rssService = require('./services/rssService.js')
+//var rssService = require('./services/rssService.js')
 
 
-var saveFileToFirebase = require('./services/saveFileToFirebase')  
+//var saveFileToFirebase = require('./services/saveFileToFirebase')  
 
 //
 
