@@ -142,7 +142,8 @@ var streamParams = {
 
 // Checks rate limit on requests
 var theseCheckParams = {
-    resources: 'statuses'
+    resources: 'statuses',
+    filter_level: 'low'
   }
 
 client.get('application/rate_limit_status', theseCheckParams,function(error, response){
