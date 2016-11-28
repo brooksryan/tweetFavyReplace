@@ -156,7 +156,13 @@ function checkRetweetStatus (tweet){
   }
 }
 
+
 var countOfTweets = 0;
+
+var maxTweetsPerHour = 9;
+
+//total tweets favorited since app started last
+var totalTweetFavoriteCount = 0;
 
 
 //sets variable for pausing stream 
@@ -173,34 +179,96 @@ var updateStreamPauseStatus = function () {
 var setTimeoutForFavoriteFunction = function () {
 
   console.log('pausing stream')
-  setTimeout(updateStreamPauseStatus, 10000)
+  setTimeout(updateStreamPauseStatus, 360000000)
 
 }
 
-// initializes stream
+
+
+
+var newTweet = function (event) {
+
+    //caches tweet info
+    this.thisTweetInfo = event,
+
+    //Determines whether or not the tweet is a retweet
+    this.retweetStatus = function (){
+
+        if (this.thisTweetInfo.retweeted_status) {
+            return true
+        }
+
+        else {
+
+            return false;
+        
+        }
+    
+    }
+
+    //extracts the text of the tweet
+    this.thisTweetText = this.thisTweetInfo.text;
+
+    //gets the unique ID for the tweet
+    this.tweetParams = {
+        id: this.thisTweetInfo.id_str
+    }
+
+    //checks the stream status at this moment
+    this.currentStreamPausedStatus = function (){
+    
+        if (isStreamPaused === false) {
+
+            return false
+
+        }
+
+        if (isStreamPaused === true) {
+
+            return true
+
+        }
+
+        if (error) {
+
+            console.log(error)
+        
+        }
+     
+     }
+
+    //check if you can favorite this tweet
+    this.canIFavoriteThisTweet = function () {
+
+      if (this.currentStreamPausedStatus() === false && this.retweetStatus() === false) {
+
+        return true
+
+      }
+
+      else { return false };
+
+    }
+    
+
+};
+
+
+//initializes stream
 var stream = client.stream('statuses/filter', streamParams);
   
 stream.on('data', function(event) {
 
-    var thisTweetRetweetStatus = checkRetweetStatus(event);
+    var thisTweet = new newTweet(event),
+        thisRetweetStatus = thisTweet.retweetStatus(),
+        thisTimerStatus = thisTweet.currentStreamPausedStatus()
 
-    var thisTweetText = event.text;
-
-    var thisTweetScore = isThisPositive(thisTweetText)
-
-    var shouldIFavoriteThis = determineIfPositive(thisTweetScore);
-          
-    var params = {
-      id: event.id_str
-    }
-
-    if (thisTweetRetweetStatus === false && isStreamPaused === false){
+    if (thisTweet.canIFavoriteThisTweet() === true){
     
-        countOfTweets += 1;
-        console.log(thisTweetText + " " + countOfTweets);
+        //console.log(thisTweet.thisTweetText + " " + countOfTweets);
     
     
-        client.post('favorites/create', params, function (error, tweet, response){
+        client.post('favorites/create', thisTweet.tweetParams, function (error, tweet, response){
                 
             //console.log(response);
             
@@ -209,7 +277,7 @@ stream.on('data', function(event) {
                 console.log(error);
             }
 
-            if (countOfTweets >= 10) {
+            if (countOfTweets >= maxTweetsPerHour) {
 
                 //pauses favoriting function 
                 isStreamPaused = true;
@@ -229,19 +297,30 @@ stream.on('data', function(event) {
                         //     console.log(thisNewData[0].message);
                         // } else {
                 
-                console.log("You just favorited " + thisTweetText + " with a score of " + thisTweetScore)
+                countOfTweets += 1;
+                totalTweetFavoriteCount += 1;
+                console.log("You just favorited: " + thisTweet.thisTweetText + "\nTotal tweets this cycle: " + countOfTweets + "\nTotal tweets counted since app started last: " + totalTweetFavoriteCount)
+
             }
         })
     }
 
-    if (thisTweetRetweetStatus === false && isStreamPaused === true) {
+    else if (thisTweet.retweetStatus() === true) {
 
-      console.log('favoriting functionality is paused');
+      console.log('I didnt favorite this tweet because it was a retweet');
 
     }
 
+    else if (thisTweet.currentStreamPausedStatus() === true) {
+
+      console.log('I didnt favorite this because favorite functionality is paused');
+
+    }
+    
     else {
-      console.log('I didnt favorite this tweet because it was a retweet');
+
+        console.log("I think something went wrong, but I don't know what", thisRetweetStatus, thisTimerStatus)
+
     }
 });
 
