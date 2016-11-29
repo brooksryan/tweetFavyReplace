@@ -159,10 +159,15 @@ function checkRetweetStatus (tweet){
 
 var countOfTweets = 0;
 
-var maxTweetsPerHour = 9;
+//maxTweetsAllowedPerInterval
+
+var maxTweetsPerInterval = 4;
 
 //total tweets favorited since app started last
 var totalTweetFavoriteCount = 0;
+
+//interval lengths
+var intervalLength = 450000000;
 
 
 //sets variable for pausing stream 
@@ -179,7 +184,7 @@ var updateStreamPauseStatus = function () {
 var setTimeoutForFavoriteFunction = function () {
 
   console.log('pausing stream')
-  setTimeout(updateStreamPauseStatus, 360000000)
+  setTimeout(updateStreamPauseStatus, intervalLength)
 
 }
 
@@ -277,7 +282,7 @@ stream.on('data', function(event) {
                 console.log(error);
             }
 
-            if (countOfTweets >= maxTweetsPerHour) {
+            if (countOfTweets >= maxTweetsPerInterval) {
 
                 //pauses favoriting function 
                 isStreamPaused = true;
@@ -290,13 +295,7 @@ stream.on('data', function(event) {
             }
 
             else {                
-                        // console.log(newData);
-                        // if (newData != null) {
-                        //     var thisNewData = []
-                        //     thisNewData += newData
-                        //     console.log(thisNewData[0].message);
-                        // } else {
-                
+
                 countOfTweets += 1;
                 totalTweetFavoriteCount += 1;
                 console.log("You just favorited: " + thisTweet.thisTweetText + "\nTotal tweets this cycle: " + countOfTweets + "\nTotal tweets counted since app started last: " + totalTweetFavoriteCount)
