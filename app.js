@@ -14,6 +14,7 @@ var cheerio = require('cheerio');
 //Twitter API
 var Twitter = require('twitter');
 var io = require("socket.io");
+//var twitterService = require('./services/twitterStream.js');
 
 //Sentiment Analysis
 var sentiment = require('sentiment');
@@ -25,14 +26,6 @@ var client = new Twitter({
   access_token_key: '187015627-8pZAOgkbmL1iYJThyCgffPgMWkEoQUAuCgw1ST6W',
   access_token_secret: 'w91vVZ3NkFDqVZDmh1mTbVc6Pso9wYVs8Sl7xeuJo2CxA'
 });
-
-//rssService
-//var rssService = require('./services/rssService.js')
-
-
-//var saveFileToFirebase = require('./services/saveFileToFirebase')  
-
-//
 
 var routes = require('./routes/index');
 var users = require('./routes/users');
@@ -134,8 +127,10 @@ function determineIfPositive (sentimentScore, callback) {
 }
 
 
-// STREAM INITIALIZATION
-// 
+//twitterService.createNewClient(client);
+
+//STREAM INITIALIZATION
+
 var streamParams = {
   track: 'Arsenal, #AFC, Ozil, Alexis Sanchez, #COYG'
 }
@@ -144,7 +139,7 @@ var streamParams = {
 var theseCheckParams = {
     resources: 'statuses',
     filter_level: 'low'
-  }
+}
 
 client.get('application/rate_limit_status', theseCheckParams,function(error, response){
     console.log(response.resources.statuses);
@@ -163,6 +158,26 @@ function checkRetweetStatus (tweet){
 
 var countOfTweets = 0;
 
+
+//sets variable for pausing stream 
+var isStreamPaused = false; 
+
+//unpauses favoriting function
+var updateStreamPauseStatus = function () {
+
+    isStreamPaused = false;
+    countOfTweets = 0
+    console.log('Ive unpaused this stream');
+}
+
+//sets timout to 30 seconds to unpause favoriting function
+var setTimeoutForFavoriteFunction = function () {
+
+  console.log('pausing stream')
+  setTimeout(updateStreamPauseStatus, 5000)
+
+}
+
 // initializes stream
 var stream = client.stream('statuses/filter', streamParams);
   
@@ -180,10 +195,9 @@ stream.on('data', function(event) {
       id: event.id_str
     }
 
-    if (thisTweetRetweetStatus === false){
-    
-        countOfTweets += 1;
-        console.log(thisTweetText + " " + countOfTweets);
+    if (thisTweetRetweetStatus === false && isStreamPaused === false){
+        
+        console.log("I found this tweet:" + thisTweetText);
     
     
         client.post('favorites/create', params, function (error, tweet, response){
@@ -192,7 +206,19 @@ stream.on('data', function(event) {
             
             if (error) {
 
-                console.log(error + ' I found an error')
+                console.log(error);
+            }
+
+            if (countOfTweets >= 10) {
+
+                //pauses favoriting function 
+                isStreamPaused = true;
+
+
+
+                //sets timer to unpause favoriting function in 30 seconds
+                setTimeoutForFavoriteFunction();
+                
             }
 
             else {                
@@ -202,9 +228,17 @@ stream.on('data', function(event) {
                         //     thisNewData += newData
                         //     console.log(thisNewData[0].message);
                         // } else {
+                
                 console.log("You just favorited " + thisTweetText + " with a score of " + thisTweetScore)
+                countOfTweets += 1;
             }
         })
+    }
+
+    if (thisTweetRetweetStatus === false && isStreamPaused === true) {
+
+      console.log('favoriting functionality is paused');
+
     }
 
     else {
