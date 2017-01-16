@@ -166,6 +166,7 @@ var isStreamPaused = false;
 var updateStreamPauseStatus = function () {
 
     isStreamPaused = false;
+    countOfTweets = 0
     console.log('Ive unpaused this stream');
 }
 
@@ -173,7 +174,7 @@ var updateStreamPauseStatus = function () {
 var setTimeoutForFavoriteFunction = function () {
 
   console.log('pausing stream')
-  setTimeout(updateStreamPauseStatus, 10000)
+  setTimeout(updateStreamPauseStatus, 5000)
 
 }
 
@@ -195,9 +196,8 @@ stream.on('data', function(event) {
     }
 
     if (thisTweetRetweetStatus === false && isStreamPaused === false){
-    
-        countOfTweets += 1;
-        console.log(thisTweetText + " " + countOfTweets);
+        
+        console.log("I found this tweet:" + thisTweetText);
     
     
         client.post('favorites/create', params, function (error, tweet, response){
@@ -214,7 +214,7 @@ stream.on('data', function(event) {
                 //pauses favoriting function 
                 isStreamPaused = true;
 
-                countOfTweets = 0;
+
 
                 //sets timer to unpause favoriting function in 30 seconds
                 setTimeoutForFavoriteFunction();
@@ -230,6 +230,7 @@ stream.on('data', function(event) {
                         // } else {
                 
                 console.log("You just favorited " + thisTweetText + " with a score of " + thisTweetScore)
+                countOfTweets += 1;
             }
         })
     }
