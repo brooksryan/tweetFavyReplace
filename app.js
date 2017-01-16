@@ -11,6 +11,10 @@ var parser = require('node-feedparser')
 var firebase = require("firebase");
 var cheerio = require('cheerio');
 
+//Config file
+var tweetConfig = require('./config.js'),
+    timeoutSetting = tweetConfig.tweetOptions.milisecondsForTimeout;
+
 //Twitter API
 var Twitter = require('twitter');
 var io = require("socket.io");
@@ -156,14 +160,20 @@ function checkRetweetStatus (tweet){
   }
 }
 
+//Count of tweets favorited during an interval iteration
 var countOfTweets = 0;
 
+//Count of tweets favorited since program started running
+var totalTweetsFavoritedThisSession = 0;
 
 //sets variable for pausing stream 
 var isStreamPaused = false; 
 
 //unpauses favoriting function
 var updateStreamPauseStatus = function () {
+
+    console.log("\n" + "we favorited this many tweets before starting again: " + countOfTweets 
+      + "\n" + "And this many tweets so far this session: "+ totalTweetsFavoritedThisSession + "\n")
 
     isStreamPaused = false;
     countOfTweets = 0
@@ -174,7 +184,7 @@ var updateStreamPauseStatus = function () {
 var setTimeoutForFavoriteFunction = function () {
 
   console.log('pausing stream')
-  setTimeout(updateStreamPauseStatus, 5000)
+  setTimeout(updateStreamPauseStatus, timeoutSetting)
 
 }
 
@@ -195,10 +205,7 @@ stream.on('data', function(event) {
       id: event.id_str
     }
 
-    if (thisTweetRetweetStatus === false && isStreamPaused === false){
-        
-        console.log("I found this tweet:" + thisTweetText);
-    
+    if (thisTweetRetweetStatus === false && isStreamPaused === false){   
     
         client.post('favorites/create', params, function (error, tweet, response){
                 
@@ -209,38 +216,37 @@ stream.on('data', function(event) {
                 console.log(error);
             }
 
-            if (countOfTweets >= 10) {
+            if (countOfTweets >= 1) {
 
                 //pauses favoriting function 
                 isStreamPaused = true;
-
-
 
                 //sets timer to unpause favoriting function in 30 seconds
                 setTimeoutForFavoriteFunction();
                 
             }
 
-            else {                
-                        // console.log(newData);
-                        // if (newData != null) {
-                        //     var thisNewData = []
-                        //     thisNewData += newData
-                        //     console.log(thisNewData[0].message);
-                        // } else {
-                
-                console.log("You just favorited " + thisTweetText + " with a score of " + thisTweetScore)
-                countOfTweets += 1;
+            else {    
+                //Increases total tweets favorited this sesion
+                totalTweetsFavoritedThisSession += 1;
+
+                //Increases tweets favorited this iteration
+                countOfTweets += 1;            
+
+                console.log("You just favorited " + thisTweetText + " with a score of " + thisTweetScore + "\n You've favorited this many tweets so far:" + countOfTweets +"\n");
             }
         })
     }
 
+    // If the tweet is a retweet AND the stream is paused, the
+    // Tweet is skipped
     if (thisTweetRetweetStatus === false && isStreamPaused === true) {
 
       console.log('favoriting functionality is paused');
 
     }
 
+    // If the tweet is a retweet, the tweet is skipped
     else {
       console.log('I didnt favorite this tweet because it was a retweet');
     }
