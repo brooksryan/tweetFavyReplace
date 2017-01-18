@@ -13,7 +13,12 @@ var cheerio = require('cheerio');
 
 //Config file
 var tweetConfig = require('./config.js'),
-    timeoutSetting = tweetConfig.tweetOptions.milisecondsForTimeout;
+
+    //Timeout inbetween tweet favorites
+    timeoutSetting = tweetConfig.tweetOptions.milisecondsForTimeout,
+
+    //Stream Parameters
+    twitterStreamParameters = tweetConfig.tweetOptions.streamParameters;
 
 //Twitter API
 var Twitter = require('twitter');
@@ -135,10 +140,6 @@ function determineIfPositive (sentimentScore, callback) {
 
 //STREAM INITIALIZATION
 
-var streamParams = {
-  track: 'Arsenal, #AFC, Ozil, Alexis Sanchez, #COYG'
-}
-
 // Checks rate limit on requests
 var theseCheckParams = {
     resources: 'statuses',
@@ -175,8 +176,7 @@ var updateStreamPauseStatus = function () {
     console.log("\n" + "we favorited this many tweets before starting again: " + countOfTweets 
       + "\n" + "And this many tweets so far this session: "+ totalTweetsFavoritedThisSession + "\n")
 
-    isStreamPaused = false;
-    countOfTweets = 0
+    isStreamPaused = false
     console.log('Ive unpaused this stream');
 }
 
@@ -189,7 +189,7 @@ var setTimeoutForFavoriteFunction = function () {
 }
 
 // initializes stream
-var stream = client.stream('statuses/filter', streamParams);
+var stream = client.stream('statuses/filter', twitterStreamParameters);
   
 stream.on('data', function(event) {
 
@@ -205,6 +205,18 @@ stream.on('data', function(event) {
       id: event.id_str
     }
 
+    if (countOfTweets >= 1) {
+
+        //pauses favoriting function 
+        isStreamPaused = true;
+
+        countOfTweets = 0
+
+        //sets timer to unpause favoriting function in 30 seconds
+        setTimeoutForFavoriteFunction();
+        
+    }
+
     if (thisTweetRetweetStatus === false && isStreamPaused === false){   
     
         client.post('favorites/create', params, function (error, tweet, response){
@@ -214,16 +226,6 @@ stream.on('data', function(event) {
             if (error) {
 
                 console.log(error);
-            }
-
-            if (countOfTweets >= 1) {
-
-                //pauses favoriting function 
-                isStreamPaused = true;
-
-                //sets timer to unpause favoriting function in 30 seconds
-                setTimeoutForFavoriteFunction();
-                
             }
 
             else {    
